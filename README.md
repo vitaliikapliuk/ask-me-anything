@@ -21,3 +21,27 @@ you can check elasticsearch status by link http://localhost:9200/ (must return s
 4. After finishing building process you can have access to documentation of the project:
 
     http://127.0.0.1:7777/docs/
+
+
+
+## Some features
+1. StopWords list (/src/main/resources/stopwords.txt), you cannot ask question if it contain some from this list
+2. Time Frame create questions rate by ISO code (for each country separatelly), you can change 'time_frame.max_iso_calls_per_second'
+param in app.properties file (src/main/resources/app.properties), by default max 100 new questions per second for each country
+3. ISO code by user IP address (freegeoip.net service for detection). If server is unavailable or access from localhost - then by default will be return 'LV'
+
+## Some use cases
+[ask question](http://localhost:7777/docs/#!/QuestionsService/create)
+
+	{
+		"questionText": "Hello, I am a question!"
+	}
+
+[list all accepted questions](http://localhost:7777/docs/#!/QuestionsService/getAll)
+[list all accepted questions by country code](http://localhost:7777/docs/#!/QuestionsService/getAll) you may use 'countyIso' query param for search by ISO codes
+[list all accepted questions by search](http://localhost:7777/docs/#!/QuestionsService/getAll) you may use 'search' query param for search by question text
+
+### reject question if
+Question contains blacklisted words listed in a dictionary (/src/main/resources/stopwords.txt)
+N questions / second are asked from a single country (limit number of questions coming from a country in a given timeframe)
+

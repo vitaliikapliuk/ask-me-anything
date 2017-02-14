@@ -15,6 +15,7 @@ import org.junit.Test;
 import javax.ws.rs.core.GenericType;
 import javax.ws.rs.core.Response;
 import java.io.IOException;
+import java.util.UUID;
 
 public class QuestionsServiceTest {
 
@@ -60,27 +61,17 @@ public class QuestionsServiceTest {
         testHelper.readQuestionId(resp);
 
         // size = 10, from = 0
-        resp = testHelper.questionsGetAll(10, 0);
+        resp = testHelper.questionsGetAll(2, 0);
         Assert.assertEquals("must be ok", 200, resp.getStatus());
 
         PaginationDTO<Question> questions = resp.readEntity(new GenericType<DataResponse<PaginationDTO<Question>>>(){})
                 .getData();
         Assert.assertNotNull("cannot be null", questions);
-        Assert.assertEquals("total must be equals", 2, questions.getTotal());
-        Assert.assertEquals("size must be equals", 10, questions.getSize());
+        Assert.assertTrue("total can be more than 2", questions.getTotal() >= 2);
+        Assert.assertEquals("size must be equals", 2, questions.getSize());
         Assert.assertEquals("from must be equals", 0, questions.getFrom());
         Assert.assertEquals("data must be equals", 2, questions.getData().size());
 
-        // size = 10, from = 2 (so two of questions will be skipped)
-        resp = testHelper.questionsGetAll(10, 2);
-        Assert.assertEquals("must be ok", 200, resp.getStatus());
-
-        questions = resp.readEntity(new GenericType<DataResponse<PaginationDTO<Question>>>(){}).getData();
-        Assert.assertNotNull("cannot be null", questions);
-        Assert.assertEquals("total must be equals", 2, questions.getTotal());
-        Assert.assertEquals("size must be equals", 10, questions.getSize());
-        Assert.assertEquals("from must be equals", 2, questions.getFrom());
-        Assert.assertEquals("data must be equals", 0, questions.getData().size());
     }
 
     @Test
@@ -100,7 +91,8 @@ public class QuestionsServiceTest {
 
     @Test
     public void testQuestionSearchByIso() throws JsonProcessingException {
-        Response resp = testHelper.questionsCreate("My Question With Iso");
+        final String questionText = "My Question With Iso";
+        Response resp = testHelper.questionsCreate(questionText);
         Assert.assertEquals("must be ok", 200, resp.getStatus());
         final String questionId = testHelper.readQuestionId(resp);
 
@@ -109,7 +101,9 @@ public class QuestionsServiceTest {
         PaginationDTO<Question> questions = resp.readEntity(new GenericType<DataResponse<PaginationDTO<Question>>>(){})
                 .getData();
         Assert.assertNotNull("cannot be null", questions);
-        Assert.assertEquals("total must be equals", 1, questions.getTotal());
+        for (Question question : questions.getData().values()) {
+            Assert.assertEquals("total must be equals", "LV", question.getCountryIso());
+        }
     }
 
     @Test
@@ -129,9 +123,10 @@ public class QuestionsServiceTest {
         PaginationDTO<Question> questions = resp.readEntity(new GenericType<DataResponse<PaginationDTO<Question>>>(){})
                 .getData();
 
-        Assert.assertEquals("must be 1 result", 1, questions.getTotal());
-        Assert.assertEquals("must be 1 result", 1, questions.getData().size());
-        Assert.assertEquals("id1 must be equals", questionId1, questions.getData().keySet().iterator().next());
+        Assert.assertTrue("must be more than 0", questions.getTotal() > 0);
+        for (Question question : questions.getData().values()) {
+            Assert.assertTrue("must contain", question.getQuestionText().toLowerCase().contains("hello"));
+        }
 
         // lets search by word 'world'
         resp = testHelper.questionsGetAll(10, 0, null, "world");
@@ -139,28 +134,28 @@ public class QuestionsServiceTest {
 
         questions = resp.readEntity(new GenericType<DataResponse<PaginationDTO<Question>>>(){}).getData();
 
-        Assert.assertEquals("must be 1 result", 1, questions.getTotal());
-        Assert.assertEquals("must be 1 result", 1, questions.getData().size());
-        Assert.assertEquals("id2 must be equals", questionId2, questions.getData().keySet().iterator().next());
-
+        Assert.assertTrue("must be more than 0", questions.getTotal() > 0);
+        for (Question question : questions.getData().values()) {
+            Assert.assertTrue("must contain", question.getQuestionText().toLowerCase().contains("world"));
+        }
         // lets search by word 'question'
         resp = testHelper.questionsGetAll(10, 0, null, "question");
         Assert.assertEquals("must be ok", 200, resp.getStatus());
 
         questions = resp.readEntity(new GenericType<DataResponse<PaginationDTO<Question>>>(){}).getData();
 
-        Assert.assertEquals("must be 2 result", 2, questions.getTotal());
-        Assert.assertEquals("must be 2 result", 2, questions.getData().size());
-
-        // lets search by word 'fake'
-        resp = testHelper.questionsGetAll(10, 0, null, "fake");
+        Assert.assertTrue("must be more than 0", questions.getTotal() > 0);
+        for (Question question : questions.getData().values()) {
+            Assert.assertTrue("must contain", question.getQuestionText().toLowerCase().contains("question"));
+        }
+        // lets search by word 'fake(random sequence)'
+        final String randomString = UUID.randomUUID().toString().replaceAll("-", "");
+        resp = testHelper.questionsGetAll(10, 0, null, randomString);
         Assert.assertEquals("must be ok", 200, resp.getStatus());
 
         questions = resp.readEntity(new GenericType<DataResponse<PaginationDTO<Question>>>(){}).getData();
 
-        Assert.assertEquals("must be 0 result", 0, questions.getTotal());
-        Assert.assertEquals("must be 0 result", 0, questions.getData().size());
-
+        Assert.assertEquals("must be 0", 0, questions.getTotal());
     }
 
     @Test
